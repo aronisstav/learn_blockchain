@@ -117,7 +117,7 @@ valid([Transaction|Rest], Balances) ->
     Valid =
         case From =:= ?MINT of
             true -> true;
-            false -> FromBalance > Amount
+            false -> FromBalance >= Amount
         end,
     case Valid of
         false -> false;
