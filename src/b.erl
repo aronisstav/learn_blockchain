@@ -113,11 +113,7 @@ valid([Transaction|Rest], Balances) ->
        to = To,
        amount = Amount
       } = Transaction,
-    FromBalance =
-        case maps:find(From, Balances) of
-            error -> 0;
-            {ok, V} -> V
-        end,
+    FromBalance = maps:get(From, Balances, 0),
     Valid =
         case From =:= ?MINT of
             true -> true;
