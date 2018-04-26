@@ -3,3 +3,4 @@ _build/*
 .idea/*
 *.dets
 rebar.lock
+*.beam
