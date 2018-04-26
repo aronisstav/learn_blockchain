@@ -1,3 +1,5 @@
+%% -*- erlang-indent-level: 4 -*-
+
 %%% @doc Implements data structure for a simple single-node blockchain
 %%% TODO: Balances can be negative, add check
 %%% TODO: Allow storing arbitrary values not just #transaction{} in block
