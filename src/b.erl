@@ -49,6 +49,7 @@
 -define(DETS_BLOCKS, dets_blocks).
 -define(DETS_HEADERS, dets_headers).
 -define(SELF_ADDRESS, <<"local-test-miner">>).
+-define(MINT, <<"1">>).
 
 
 open() ->
@@ -98,10 +99,52 @@ make_genesis() ->
 
 
 %% @doc Add another block with a list of entries
--spec add(list(transaction())) -> {integer(), block_header()}.
+-spec add(list(transaction())) -> {integer(), block_header()} | 'rejected'.
 add(Entries) ->
+    case valid(Entries, balances()) of
+        true -> attach(Entries);
+        false -> rejected
+    end.
+
+valid([], _) -> true;
+valid([Transaction|Rest], Balances) ->
+    #transaction{
+       from = From,
+       to = To,
+       amount = Amount
+      } = Transaction,
+    FromBalance =
+        case maps:find(From, Balances) of
+            error -> 0;
+            {ok, V} -> V
+        end,
+    Valid =
+        case From =:= ?MINT of
+            true -> true;
+            false -> FromBalance > Amount
+        end,
+    case Valid of
+        false -> false;
+        true ->
+            Acc = Balances,
+            Acc1 =
+                maps:update_with(
+                  From,
+                  fun(B) -> B - Amount end,
+                  -Amount,
+                  Acc),
+            NewBalances =
+                maps:update_with(
+                  To,
+                  fun(B) -> B + Amount end,
+                  Amount,
+                  Acc1),
+            valid(Rest, NewBalances)
+    end.
+
+attach(Entries) ->
     {ok, {N, #block_header{hash = PrevHash}}} = get_last_blockheader(),
-    Block = #block{entries = lists:sort(Entries)},
+    Block = #block{entries = Entries},
     Header0 = #block_header{
         miner       = ?SELF_ADDRESS,
         hash        = <<>>,
