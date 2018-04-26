@@ -163,6 +163,9 @@ get_block_hash(Block, BlockHeader) ->
 %% @doc For each block header from 0 to (last), read the entries and accumulate
 %% the available balances.
 balances() ->
+    {CachedBalances, BlockNumber} =
+        application:get_env(b, cached_balances, {#{}, 0}),
+
     EntriesFn =
         fun(#transaction{from   = From,
                          to     = To,
@@ -177,12 +180,16 @@ balances() ->
                              Acc1)
         end,
     BlockCount = dets:info(?DETS_HEADERS, size),
-    lists:foldl(
+    Balances = lists:foldl(
         fun(N, Acc) ->
             [{_, #block_header{hash = Hash}}] = dets:lookup(?DETS_HEADERS, N),
             [{_, #block{entries = Entries}}] = dets:lookup(?DETS_BLOCKS, Hash),
             lists:foldl(EntriesFn, Acc, Entries)
         end,
-        #{},
-        lists:seq(0, BlockCount - 1)
-    ).
+        CachedBalances,
+        lists:seq(BlockNumber + 1, BlockCount - 1)
+    ),
+
+    application:set_env(b, cached_balances, {Balances, BlockCount - 1}),
+
+    Balances.
